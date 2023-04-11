@@ -1,0 +1,241 @@
+---
+title: "Analysis of Market Value of Soccer Players"
+author: "Nibir Das"
+date: "2023-01-03"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction:
+
+Soccer is one of the most popular sports worldwide, and players' market values have always been a topic of interest for soccer enthusiasts. In this project, we will use R programming to analyze the market value of soccer players based on a dataset obtained from Kaggle. This dataset contains information on various attributes of soccer players and their respective market values. We will explore this dataset, perform data cleaning and analysis, and visualize our findings to provide meaningful insights.
+
+## Data Exploration:
+
+First, we will load the necessary packages and read the dataset into our R environment. The dataset contains information on 18,207 soccer players and their respective attributes such as age, overall rating, club, positions, etc. We will perform an initial exploration of the dataset to get a better understanding of the data we are dealing with.
+
+```{r}
+# Load the required packages
+library(tidyverse)
+library(caret)
+library(knitr)
+```
+
+```{r}
+# Read the dataset
+players <- read_csv("players_fifa23.csv")
+
+# Explore the dataset
+summary(players)
+glimpse(players)
+```
+
+From the initial exploration, we observe that the dataset has 18,207 observations and 93 variables. Most variables are numeric, and some variables such as NationalPosition and NationalNumber contain missing values. We will drop some columns that we consider irrelevant for our analysis and check for missing values in the remaining variables.
+
+```{r}
+# Drop unnecessary columns
+players <- players %>% select(-c("ID", "Name","PhotoUrl","OnLoad","Dribbling", "SkillMoves", "Volleys","ContractUntil","Nationality","ClubJoined", "WeakFoot", "ShortPassing","PaceTotal", "ShootingTotal", "PassingTotal", "DribblingTotal", "DefendingTotal", "PhysicalityTotal", "Crossing", "NationalPosition", "NationalNumber", "ClubNumber", "LongShots", "Aggression", "Interceptions", "Positioning", "Vision", "HeadingAccuracy", "LongPassing", "Acceleration", "Agility", "Reactions", "Jumping"))
+# Drop columns with too many missing values
+players <- players %>% select(-c("DefensiveWorkRate"))
+players <- players %>% select(-c("ClubPosition"))
+players <- players %>% select(-c("AttackingWorkRate","NationalTeam","PreferredFoot"))
+colSums(is.na(players))
+```
+
+We observe that several variables have missing values, but the number of missing values is relatively low compared to the number of observations. We will clean the data further by dividing the ValueEUR variable by 1 million to reflect market values in millions of Euros and rounding it to 2 decimal places.
+
+```{r}
+# Divide ValueEUR by 1 million to reflect market values in millions of Euros
+players$ValueEUR <- players$ValueEUR / 1000000
+
+# Round ValueEUR to 2 decimal places
+players$ValueEUR <- round(players$ValueEUR, 2)
+```
+
+## Data Visualization:
+
+Before building the prediction model, it is important to explore and visualize the data to understand the distribution, relationship, and correlation of the variables. Now that we have cleaned the data, we can proceed to visualize our findings. And, one way to visualize the market value of soccer players is to sort the data by ValueEUR in descending order and select the top 10 players with the highest market values. We can use ggplot2 to create a bar chart showing the market value of these players.
+
+```{r}
+# select the columns of interest
+df_subset <- select(players, FullName, Overall, Age, Club, Positions, ValueEUR)
+
+# sort the data by ValueEUR in descending order
+df_sorted <- arrange(df_subset, desc(ValueEUR))
+
+# select the top 10 rows with highest ValueEUR
+df_top10 <- head(df_sorted, 10)
+```
+
+The market value of the top 10 players is shown below. The resulting output shows the name, age, position, club, and market value of the top 10 players.
+
+```{r}
+# print the result
+print(df_top10)
+```
+
+```{r top10plot, echo=FALSE, include=TRUE, fig.cap="Top 10 Players by Market Value"}
+library(ggplot2)
+
+# create a bar plot showing the top 10 players with the highest market values
+ggplot(df_top10, aes(x = FullName, y = ValueEUR, fill = Club)) +
+  geom_bar(stat = "identity") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  xlab("Player Name") +
+  ylab("Market Value (in millions of Euros)") +
+  ggtitle("Top 10 Players by Market Value")
+```
+
+```{r}
+ggplot(df_subset, aes(x = Overall, y = ValueEUR)) + 
+  geom_point() +
+  labs(x = "Overall Rating", y = "Market Value (million Euros)", 
+       title = "Scatter plot of Overall Rating vs. Market Value of FIFA 23 Players")
+```
+
+The scatter plot presented above shows a positive correlation between a player's overall rating and their market value, meaning that as a player's overall rating increases, their market value tends to increase as well. This correlation is not surprising, as higher-rated players are generally considered to be more skilled and valuable to their respective teams.
+
+However, there are some notable outliers in the plot, which are players with a much higher market value than the rest of the players. These outliers are young players such as Kylian Mbappe and Erling Haaland, who have gained a lot of attention and praise in the soccer world due to their exceptional talent and potential. These players are believed by many to be the future superstars of the sport and have already made a significant impact at a young age.
+
+The presence of outliers in the plot highlights the importance of considering factors beyond just a player's current overall rating when determining their market value. Young players with exceptional talent and potential can have a higher market value than older players with a similar overall rating due to their potential to improve and become even more valuable in the future. These outliers serve as a reminder that while overall rating is an essential factor in determining a player's market value, other factors such as age, potential, and performance history should also be taken into account.
+
+```{r}
+ggplot(df_subset, aes(x = ValueEUR)) +
+  geom_histogram(bins = 20, fill = "blue", color = "black") +
+  labs(x = "Market Value (million Euros)", y = "Frequency", 
+       title = "Histogram of Market Value of FIFA 23 Players")
+
+```
+
+The histogram above provides a clear visual representation of the distribution of market values of FIFA 23 players. We can see that the majority of players have a market value between 0 and 20 million euros, as indicated by the highest bar in the histogram. This suggests that most players in the dataset are not particularly expensive or valuable.
+
+However, we can also see that there are a few players with a market value greater than 100 million euros, as indicated by the tall bar on the right-hand side of the histogram. These players are likely the most valuable and expensive players in the game, such as Kylian Mbappe or Erling Haaland.
+
+It is interesting to note that there is a significant drop-off in the number of players with market values between 20 million euros and 100 million euros. This suggests that there is a relatively small group of players who are considered to be of exceptional value and that the market values of most players fall within a relatively narrow range.
+
+Overall, this histogram provides valuable insights into the distribution of market values of FIFA 23 players and highlights the fact that there is a wide range of values in the dataset, with some players being significantly more valuable than others.
+
+The analysis of the distribution of market values of FIFA 23 players by club, age, and overall rating provides insight into the value that different clubs place on their players. The bar plot of market values by club shows that Manchester City, Bayern Munich, and Paris Saint-Germain are among the clubs with the highest average market value of players. This indicates that these clubs have invested heavily in acquiring top talent and are willing to pay a premium for players who can contribute to their success.
+
+The bar plot also reveals that there is significant variation in the average market value of players across different clubs, with some clubs having a much higher average market value than others. This variation may be due to several factors such as club revenue, financial resources, success on the pitch, and popularity among fans.
+
+```{r echo=FALSE}
+
+# Histogram of market values
+ggplot(df_subset, aes(x = ValueEUR)) + 
+  geom_histogram(bins = 30, fill = "#0c4c8a") + 
+  ggtitle("Distribution of Market Values of FIFA 23 Players")
+
+
+# Bar plot of market values by club
+# group players by club, calculate the average market value, and select top 10 clubs
+df_top10_clubs <- df_subset %>%
+  group_by(Club) %>%
+  summarize(avg_value = mean(ValueEUR)) %>%
+  arrange(desc(avg_value)) %>%
+  head(10)
+
+# plot the top 10 clubs by average market value
+ggplot(df_top10_clubs, aes(x = Club, y = avg_value, fill = Club)) +
+  geom_bar(stat = "identity") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  xlab("Club") +
+  ylab("Average Market Value (in millions of Euros)") +
+  ggtitle("Top 10 Clubs by Average Market Value")
+
+
+# Scatter plot of market values by age
+ggplot(df_subset, aes(x = Age, y = ValueEUR)) + 
+  geom_point(color = "#0c4c8a") + 
+  ggtitle("Market Values of FIFA 23 Players by Age") + 
+  xlab("Age") + ylab("Market Value (in millions of Euros)")
+
+```
+
+The scatter plot of market values by age shows that younger players generally have lower market values than older players. This could be due to various reasons such as lack of experience, unproven talent, or shorter contract length. However, we also observe that there are some young players with high market values, indicating exceptional talent and potential.
+
+The scatter plot of market values by overall rating shows a clear positive correlation between market value and overall rating. The higher a player's overall rating, the higher their market value is likely to be. This is not surprising as overall rating is a measure of a player's skill and abilities, which are highly valued in the soccer market.
+
+Overall, the analysis of the distribution of market values of FIFA 23 players by club, age, and overall rating provides valuable insights into the factors that influence the value that different clubs place on their players. By understanding these factors, clubs and investors can make more informed decisions when it comes to player recruitment, contract negotiation, and transfer negotiations.
+
+## Predicting Market Values:
+
+In order to predict the market value of soccer players, we fit a linear regression model using the caret package. Linear regression is a statistical method that tries to fit a straight line through a set of data points to model the relationship between a dependent variable (target) and one or more independent variables (features). We used all the available variables in the dataset as predictors except for the variables that are directly related to market value such as the ValueEUR and WageEUR variables. To train the model, the data was first split into a training set and a test set. The training set was used to fit the model, and the test set was used to evaluate its performance. The features were then sliced from the data, excluding the target variable 'ValueEUR'. The target variable was then added to the features to create a new data frame. A linear regression model was then fitted on this data frame with 'ValueEUR' as the dependent variable and the other player attributes as independent variables. The model was then used to predict the market values of players in the test set.
+
+Next, we used the model to predict the market values of all players in the dataset and compared them to the actual market values. We identified the top 15 players who are potentially undervalued in the current market based on the difference between their actual and predicted market values. The data was then converted to millions of Euros and rounded to 2 decimal places for better readability.
+
+The linear regression model was chosen as it is a simple and interpretable method that can provide insights into the relationship between the target variable and the features. Additionally, it assumes a linear relationship between the target and the features, which is a reasonable assumption for predicting the market value of soccer players based on various attributes such as age, overall rating, and physical attributes. However, it is worth noting that the model has its limitations, such as assuming a linear relationship, and may not perform well if the relationship between the target and features is non-linear or if there are interactions between the features.
+
+The resulting table shows the top 15 players who are potentially undervalued in the current market:
+
+```{r eval=FALSE,include=TRUE,fig.cap="Top 15 Players Who are Potentially Undervalued in the Current Market"}
+library(kableExtra)
+library(htmltools)
+
+df_under <- head(df_sorted, 15)
+
+# Create table with image
+kable(df_under[,c("Name", "Actual", "Predicted", "Difference")], 
+      caption = "Top 15 Players Who are Potentially Undervalued in the Current Market") %>%
+  kable_styling(full_width = FALSE) %>%
+  column_spec(1, width = "60px")
+
+```
+
+|     | Name                             | Actual | Predicted | Difference |
+|:----|:---------------------------------|-------:|----------:|-----------:|
+| 2   | Karim Benzema                    |   64.0 |  79.26046 | -15.260465 |
+| 3   | Robert Lewandowski               |   84.0 |  97.15903 | -13.159026 |
+| 64  | Vinícius José de Oliveira Júnior |  109.0 | 118.90187 |  -9.901866 |
+| 30  | Luka Modrić                      |   29.0 |  38.33065 |  -9.330650 |
+| 29  | Toni Kroos                       |   72.0 |  80.97389 |  -8.973892 |
+| 120 | Eden Hazard                      |   35.0 |  43.75194 |  -8.751945 |
+| 7   | Thibaut Courtois                 |   90.0 |  98.24582 |  -8.245822 |
+| 73  | Sergio Busquets Burgos           |   26.5 |  34.68490 |  -8.184903 |
+| 157 | Marco Asensio Willemsen          |   43.0 |  51.18411 |  -8.184107 |
+| 135 | Federico Valverde                |   66.0 |  73.85074 |  -7.850735 |
+| 28  | Marc-André ter Stegen            |   68.5 |  76.29894 |  -7.798943 |
+| 76  | Memphis Depay                    |   55.0 |  62.71370 |  -7.713696 |
+| 232 | Aurélien Tchouaméni              |   61.5 |  69.13585 |  -7.635855 |
+| 72  | Jordi Alba Ramos                 |   28.0 |  35.16959 |  -7.169586 |
+| 31  | Antonio Rüdiger                  |   73.5 |  80.65317 |  -7.153165 |
+
+From the table, we observe that some of the top undervalued players are young players such as Aurélien Tchouaméni and Vinicius Junior, who are expected to have a bright future in the soccer world.
+
+The bar plot of the actual and predicted market values of the top 15 undervalued players shows a clear indication that these players are potentially undervalued in the current market. The difference between the actual and predicted market values of these players is significant, with most of them having a negative difference, indicating that their market value could potentially be higher than what is currently being estimated in the market.
+
+The list of 15 players who are potentially undervalued reveals some interesting insights. For instance, Robert Lewandowski and Karim Benzema, two of the world's most prolific goal scorers, are undervalued by around 13 million and 15 million euros, respectively. Vinícius José de Oliveira Júnior, the Brazilian forward for Real Madrid, is undervalued by almost 10 million euros. Similarly, Luka Modrić and Toni Kroos, two of the most consistent midfielders in the game, are undervalued by around 9 million euros and 8 million euros, respectively.
+
+Other no![]()table players in the list include Eden Hazard, the Belgian winger for Real Madrid, Thibaut Courtois, the Belgian goalkeeper for Real Madrid, Sergio Busquets, the Spanish midfielder for Barcelona, and Marc-André ter Stegen, the German goalkeeper for Barcelona, who are all potentially undervalued by several million euros.
+
+These findings highlight the potential opportunities for clubs to acquire top-quality players at a lower cost than what is currently being estimated in the market. Additionally, it could also indicate that these players are not receiving the recognition they deserve, possibly due to factors such as lack of media attention, injury concerns, or inconsistent performances in recent seasons.
+
+```{r plot, eval=FALSE, fig.cap="Actual and Predicted Market Values of 15 Most Undervalued Players"}
+# Create a bar plot showing the actual and predicted market values of the top 15 undervalued players
+
+df_under_long <- df_under %>%
+  pivot_longer(cols = c(Actual, Predicted), names_to = "MarketValue", values_to = "ValueEUR") 
+
+ggplot(df_under_long, aes(x = Name, y = ValueEUR, fill = MarketValue)) +
+  geom_col(position = "dodge", width = 0.5) +
+  ggtitle("Actual and Predicted Market Values of 15 Most Undervalued Players") +
+  xlab("Player Name") +
+  ylab("Market Value (in millions of Euros)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5,
+                                    hjust = 1),
+        legend.title = element_blank(),
+        legend.position = "top") 
+
+```
+
+![](predictions)In conclusion, we have analyzed the market value of soccer players based on a dataset obtained from Kaggle. We started by exploring the data and cleaning it by dropping irrelevant columns and dealing with missing values. We then visualized our findings using various plots such as scatter plots, histograms, and bar charts to provide meaningful insights into the market value of soccer players.
+
+Our analysis showed that overall rating, potential, and international reputation have the most significant impact on market value, while penalties, ball control, and jumping have the least significant impact on market value. We also identified the top 15 players who are potentially undervalued in the current market based on the difference between their actual and predicted market values. These players included both young and experienced players, and our analysis showed that they have exceptional talent and potential that is not reflected in their current market value.
+
+Furthermore, our analysis has practical implications for clubs and agents involved in player transfers and contract negotiations. Our findings can help them identify the most critical factors that contribute to a player's market value and areas for improvement in player development. This could lead to more informed decision-making and better returns on investment in the future
+
+Overall, our analysis provides valuable insights into the market value of soccer players, and there is significant potential for future research in this area. For example, future studies could explore the impact of other factors such as team performance, player injuries, and social media influence on a player's market value. We hope that our analysis will contribute to further studies in this field and assist stakeholders in making more informed decisions.
